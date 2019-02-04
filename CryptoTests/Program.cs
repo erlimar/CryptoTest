@@ -4,11 +4,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace CryptoTests
 {
     class Program
     {
+        private const string MESSAGE_DEFAULT = "Test Message!";
+
         private string _pathBase;
         private string _message;
 
@@ -33,15 +36,77 @@ namespace CryptoTests
 
             if (ArgFlagIsPresent(args, "gen"))
             {
-                var rsa = new RSACryptoServiceProvider(2048);
+                GenerateKeys();
+            }
 
-                ExportaXml(rsa);
-                ExportaPEM(rsa);
+            if (ArgFlagIsPresent(args, "test-xml"))
+            {
+                PerformXmlTest();
+            }
+
+            if (ArgFlagIsPresent(args, "test-pem"))
+            {
+                PerformPEMTest();
             }
         }
 
         /// <summary>
-        /// Lê a mensagem dos argumentos
+        /// Gera chaves
+        /// </summary>
+        private void GenerateKeys()
+        {
+            var rsa = new RSACryptoServiceProvider(2048);
+
+            ExportToXml(rsa);
+            ExportToPEM(rsa);
+        }
+
+        /// <summary>
+        /// Testa criptografar/descriptografar mensagem com chaves Xml
+        /// </summary>
+        private void PerformXmlTest()
+        {
+            Console.WriteLine("---------------------- PERFORM XML TEST (BEGIN) ----------------------");
+
+            var message = _message ?? MESSAGE_DEFAULT;
+            var messageBytes = Encoding.UTF8.GetBytes(message);
+            var rsa = ImportFromXml();
+            var encryptedMessage = rsa.Encrypt(messageBytes, false);
+            var encryptedMessageBase64 = Convert.ToBase64String(encryptedMessage);
+            var decryptedMessage = rsa.Decrypt(encryptedMessage, false);
+            var decryptedMessageString = Encoding.UTF8.GetString(decryptedMessage);
+
+            Console.WriteLine($"Original message: {message}");
+            Console.WriteLine($"Encrypted message: {encryptedMessageBase64}");
+            Console.WriteLine($"Decrypted message: {decryptedMessageString}");
+
+            Console.WriteLine("---------------------- PERFORM XML TEST (END) ------------------------");
+        }
+
+        /// <summary>
+        /// Testa criptografar/descriptografar mensagem com chaves PEM
+        /// </summary>
+        private void PerformPEMTest()
+        {
+            Console.WriteLine("---------------------- PERFORM PEM TEST (BEGIN) ----------------------");
+
+            var message = _message ?? MESSAGE_DEFAULT;
+            var messageBytes = Encoding.UTF8.GetBytes(message);
+            var rsa = ImportFromPEM();
+            var encryptedMessage = rsa.Encrypt(messageBytes, false);
+            var encryptedMessageBase64 = Convert.ToBase64String(encryptedMessage);
+            var decryptedMessage = rsa.Decrypt(encryptedMessage, false);
+            var decryptedMessageString = Encoding.UTF8.GetString(decryptedMessage);
+
+            Console.WriteLine($"Original message: {message}");
+            Console.WriteLine($"Encrypted message: {encryptedMessageBase64}");
+            Console.WriteLine($"Decrypted message: {decryptedMessageString}");
+
+            Console.WriteLine("---------------------- PERFORM PEM TEST (END) ------------------------");
+        }
+
+        /// <summary>
+        /// Lê a mensagem dos argumentos --message [MESSAGE]
         /// </summary>
         /// <param name="args">Lista de argumentos</param>
         private void ReadMessage(IList<string> args)
@@ -59,10 +124,10 @@ namespace CryptoTests
         }
 
         /// <summary>
-        /// Cria um par de chaves pública e privada e salva em arquivos XML
+        /// Exporta chaves para arquivos XML
         /// </summary>
         /// <param name="rsa">Chave</param>
-        void ExportaXml(RSACryptoServiceProvider rsa)
+        void ExportToXml(RSACryptoServiceProvider rsa)
         {
             var allParamsXml = rsa.ToXmlString(true);
             var publicParamsXml = rsa.ToXmlString(false);
@@ -74,10 +139,25 @@ namespace CryptoTests
         }
 
         /// <summary>
-        /// Cria um par de chaves pública e privada e salva em arquivos PEM
+        /// Importa chave de arquivos XML
+        /// </summary>
+        /// <returns>Instância de <see cref="RSACryptoServiceProvider"/></returns>
+        RSACryptoServiceProvider ImportFromXml()
+        {
+            var rsa = new RSACryptoServiceProvider();
+            var pathPrivate = Path.Combine(_pathBase, "key-private.xml");
+            var privateXml = File.ReadAllText(pathPrivate);
+
+            rsa.FromXmlString(privateXml);
+
+            return rsa;
+        }
+
+        /// <summary>
+        /// Exporta chaves para arquivos PEM
         /// </summary>
         /// <param name="rsa">Chave</param>
-        void ExportaPEM(RSACryptoServiceProvider rsa)
+        void ExportToPEM(RSACryptoServiceProvider rsa)
         {
             var allParams = rsa.ExportParameters(true);
             var outputPathPrivate = Path.Combine(_pathBase, "key-private.pem");
@@ -94,6 +174,26 @@ namespace CryptoTests
             {
                 writer.WritePublicKey(allParams);
             }
+        }
+
+        /// <summary>
+        /// Importa chave de arquivos PEM
+        /// </summary>
+        /// <returns>Instância de <see cref="RSACryptoServiceProvider"/></returns>
+        RSACryptoServiceProvider ImportFromPEM()
+        {
+            var rsa = new RSACryptoServiceProvider();
+            var pathPrivate = Path.Combine(_pathBase, "key-private.pem");
+
+            using (var stream = File.OpenRead(pathPrivate))
+            using (var reader = new PemReader(stream))
+            {
+                var rsaParameters = reader.ReadRsaKey();
+
+                rsa.ImportParameters(rsaParameters);
+            }
+
+            return rsa;
         }
 
         // ///////////////////////////////////////////////////////////////////
