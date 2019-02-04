@@ -4,20 +4,34 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CryptoTests
 {
     class Program
     {
-        private string _pathBase = @"C:\Users\Erlimar\Desktop\CryptoTests";
+        private string _pathBase;
+        private string _message;
+
+        public Program()
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+            _pathBase = Path.Combine(home, nameof(CryptoTests));
+        }
+
+        // ///////////////////////////////////////////////////////////////////
 
         void Main(IList<string> args)
         {
-            ObtemPathBase(args);
+            ReadPathBase(args);
+            ReadMessage(args);
 
-            if (args.Any(w => w == "--gerar"))
+            if (!Directory.Exists(_pathBase))
+            {
+                Directory.CreateDirectory(_pathBase);
+            }
+
+            if (ArgFlagIsPresent(args, "gen"))
             {
                 var rsa = new RSACryptoServiceProvider(2048);
 
@@ -27,17 +41,21 @@ namespace CryptoTests
         }
 
         /// <summary>
+        /// Lê a mensagem dos argumentos
+        /// </summary>
+        /// <param name="args">Lista de argumentos</param>
+        private void ReadMessage(IList<string> args)
+        {
+            _message = GetArgKeyValue(args, "message");
+        }
+
+        /// <summary>
         /// Lê o caminho báse do parâmetro --base [PATH]
         /// </summary>
         /// <param name="args">Lista de argumentos</param>
-        private void ObtemPathBase(IList<string> args)
+        private void ReadPathBase(IList<string> args)
         {
-            int idx = args.IndexOf("--base");
-
-            if (idx > -1 && args.Count > idx)
-            {
-                _pathBase = Path.GetFullPath(args[idx + 1]);
-            }
+            _pathBase = GetArgKeyValue(args, "base") ?? _pathBase;
         }
 
         /// <summary>
@@ -77,6 +95,27 @@ namespace CryptoTests
                 writer.WritePublicKey(allParams);
             }
         }
+
+        // ///////////////////////////////////////////////////////////////////
+
+        private bool ArgFlagIsPresent(IList<string> args, string flagName)
+        {
+            return args.Any(w => w == $"--{flagName}");
+        }
+
+        private string GetArgKeyValue(IList<string> args, string keyName)
+        {
+            int idx = args.IndexOf($"--{keyName}");
+
+            if (idx > -1 && args.Count > idx + 1)
+            {
+                return args[idx + 1];
+            }
+
+            return null;
+        }
+
+        // ///////////////////////////////////////////////////////////////////
 
         static void Main(string[] args)
             => new Program().Main(args.ToList());
