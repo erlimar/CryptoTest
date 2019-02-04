@@ -11,6 +11,24 @@ namespace CryptoTests
     class Program
     {
         private const string MESSAGE_DEFAULT = "Test Message!";
+        private const string HELP_TEXT = @"CryptoTests - Perform Key Pair Encrypt Tests
+
+usage: CryptoTests [OPTIONS]
+
+Options:
+  --help, -h          Show this help message
+  --base <BASE_PATH>  Set a base directory path.
+                      > Default is ""$HOME\CryptoTests""
+  --message <MESSAGE> Set a message content to encrypt/decrypt tests
+                      > Default is ""Test Message!""
+  --gen, -g           Generate a encrypt key pair files on ""--base"" directory:
+                      > key-private.pem  Private key in PEM format
+                      > key-public.pem   Public key in PEM format
+                      > key-private.xml  Private key in XML format
+                      > key-public.xml   Public key in XML format
+  --test-xml          Perform encrypt/decrypt tests with generated XML files
+  --test-pem          Perform encrypt/decrypt tests with generated PEM files
+";
 
         private string _pathBase;
         private string _message;
@@ -26,6 +44,13 @@ namespace CryptoTests
 
         void Main(IList<string> args)
         {
+            if (ArgFlagIsPresent(args, "--help|-h"))
+            {
+                ShowHelp();
+
+                return;
+            }
+
             ReadPathBase(args);
             ReadMessage(args);
 
@@ -34,20 +59,25 @@ namespace CryptoTests
                 Directory.CreateDirectory(_pathBase);
             }
 
-            if (ArgFlagIsPresent(args, "gen"))
+            if (ArgFlagIsPresent(args, "--gen|-g"))
             {
                 GenerateKeys();
             }
 
-            if (ArgFlagIsPresent(args, "test-xml"))
+            if (ArgFlagIsPresent(args, "--test-xml"))
             {
                 PerformXmlTest();
             }
 
-            if (ArgFlagIsPresent(args, "test-pem"))
+            if (ArgFlagIsPresent(args, "--test-pem"))
             {
                 PerformPEMTest();
             }
+        }
+
+        private void ShowHelp()
+        {
+            Console.Write(HELP_TEXT);
         }
 
         /// <summary>
@@ -200,7 +230,16 @@ namespace CryptoTests
 
         private bool ArgFlagIsPresent(IList<string> args, string flagName)
         {
-            return args.Any(w => w == $"--{flagName}");
+            bool found = false;
+
+            flagName.Split('|')
+                .ToList()
+                .ForEach((flag) =>
+                {
+                    found = found || args.Any(w => w == flag);
+                });
+
+            return found;
         }
 
         private string GetArgKeyValue(IList<string> args, string keyName)
