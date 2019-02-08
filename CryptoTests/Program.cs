@@ -73,6 +73,16 @@ Options:
             {
                 PerformPEMTest();
             }
+
+            if (ArgFlagIsPresent(args, "--encrypt|-e"))
+            {
+                EncryptMessage();
+            }
+
+            if (ArgFlagIsPresent(args, "--decrypt|-d"))
+            {
+                DecryptMessage();
+            }
         }
 
         private void ShowHelp()
@@ -136,6 +146,43 @@ Options:
         }
 
         /// <summary>
+        /// Criptografa uma mensagem
+        /// </summary>
+        private void EncryptMessage()
+        {
+            if (string.IsNullOrEmpty(_message))
+            {
+                throw new Exception("Parameter --message is required!");
+            }
+
+            var messageBytes = Encoding.UTF8.GetBytes(_message);
+            var rsa = ImportFromPEM();
+            var encryptedMessage = rsa.Encrypt(messageBytes, false);
+            var encryptedMessageBase64 = Convert.ToBase64String(encryptedMessage);
+
+            Console.WriteLine($"Encrypted message: {encryptedMessageBase64}");
+        }
+
+        /// <summary>
+        /// Descriptografa uma mensagem
+        /// </summary>
+        /// <remarks>A mensagem deve estar codificada em base64</remarks>
+        private void DecryptMessage()
+        {
+            if (string.IsNullOrEmpty(_message))
+            {
+                throw new Exception("Parameter --message is required!");
+            }
+
+            var messageBytes = Convert.FromBase64String(_message);
+            var rsa = ImportFromPEM();
+            var decryptedMessage = rsa.Decrypt(messageBytes, false);
+            var decryptedMessageString = Encoding.UTF8.GetString(decryptedMessage);
+
+            Console.WriteLine($"Decrypted message: {decryptedMessageString}");
+        }
+
+        /// <summary>
         /// Lê a mensagem dos argumentos --message [MESSAGE]
         /// </summary>
         /// <param name="args">Lista de argumentos</param>
@@ -145,7 +192,7 @@ Options:
         }
 
         /// <summary>
-        /// Lê o caminho báse do parâmetro --base [PATH]
+        /// Lê o caminho base do parâmetro --base [PATH]
         /// </summary>
         /// <param name="args">Lista de argumentos</param>
         private void ReadPathBase(IList<string> args)
