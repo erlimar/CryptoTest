@@ -16,22 +16,29 @@ namespace CryptoTests
 usage: CryptoTests [OPTIONS]
 
 Options:
-  --help, -h          Show this help message
-  --base <BASE_PATH>  Set a base directory path.
-                      > Default is ""$HOME\CryptoTests""
-  --message <MESSAGE> Set a message content to encrypt/decrypt tests
-                      > Default is ""Test Message!""
-  --gen, -g           Generate a encrypt key pair files on ""--base"" directory:
-                      > key-private.pem  Private key in PEM format
-                      > key-public.pem   Public key in PEM format
-                      > key-private.xml  Private key in XML format
-                      > key-public.xml   Public key in XML format
-  --test-xml          Perform encrypt/decrypt tests with generated XML files
-  --test-pem          Perform encrypt/decrypt tests with generated PEM files
+  --help, -h            Show this help message
+  --base <BASE_PATH>    Set a base directory path.
+                        > Default is ""$HOME\CryptoTests""
+  --message <MESSAGE>   Set a message content to encrypt/decrypt tests
+                        > Default is ""Test Message!""
+  --pubkey <FILE_PATH>  Set a public key file path
+  --privkey <FILE_PATH> Set a private key file path
+  --gen, -g             Generate a encrypt key pair files on ""--base"" directory:
+                        > key-private.pem  Private key in PEM format
+                        > key-public.pem   Public key in PEM format
+                        > key-private.xml  Private key in XML format
+                        > key-public.xml   Public key in XML format
+  --test-xml            Perform encrypt/decrypt tests with generated XML files
+  --test-pem            Perform encrypt/decrypt tests with generated PEM files
+  --encrypt, -e         Encrypt message
+  --decrypt, -d         Decrypt message
+  --debug               Waiting for debugger attachment
 ";
 
         private string _pathBase;
         private string _message;
+        private string _publicKeyPath;
+        private string _privateKeyPath;
 
         public Program()
         {
@@ -44,44 +51,77 @@ Options:
 
         void Main(IList<string> args)
         {
-            if (ArgFlagIsPresent(args, "--help|-h"))
+            try
             {
-                ShowHelp();
+                if (ArgFlagIsPresent(args, "--debug"))
+                {
+                    while (!System.Diagnostics.Debugger.IsAttached)
+                    {
+                        System.Threading.Thread.Sleep(100);
+                    }
+                }
 
-                return;
+                if (ArgFlagIsPresent(args, "--help|-h"))
+                {
+                    ShowHelp();
+
+                    return;
+                }
+
+                ReadPathBase(args);
+                ReadMessage(args);
+                ReadPublicKey(args);
+                ReadPrivateKey(args);
+
+                if (!Directory.Exists(_pathBase))
+                {
+                    Directory.CreateDirectory(_pathBase);
+                }
+
+                bool executed = false;
+
+                if (ArgFlagIsPresent(args, "--gen|-g"))
+                {
+                    executed = true;
+                    GenerateKeys();
+                }
+
+                if (ArgFlagIsPresent(args, "--test-xml"))
+                {
+                    executed = true;
+                    PerformXmlTest();
+                }
+
+                if (ArgFlagIsPresent(args, "--test-pem"))
+                {
+                    executed = true;
+                    PerformPEMTest();
+                }
+
+                if (ArgFlagIsPresent(args, "--encrypt|-e"))
+                {
+                    executed = true;
+                    EncryptMessage();
+                }
+
+                if (ArgFlagIsPresent(args, "--decrypt|-d"))
+                {
+                    executed = true;
+                    DecryptMessage();
+                }
+
+                if (!executed)
+                {
+                    ShowHelp();
+                    Environment.ExitCode = 1;
+                }
             }
-
-            ReadPathBase(args);
-            ReadMessage(args);
-
-            if (!Directory.Exists(_pathBase))
+            catch (Exception ex)
             {
-                Directory.CreateDirectory(_pathBase);
-            }
+                Console.Error.Write("Erro: ");
+                Console.Error.WriteLine(ex.Message);
 
-            if (ArgFlagIsPresent(args, "--gen|-g"))
-            {
-                GenerateKeys();
-            }
-
-            if (ArgFlagIsPresent(args, "--test-xml"))
-            {
-                PerformXmlTest();
-            }
-
-            if (ArgFlagIsPresent(args, "--test-pem"))
-            {
-                PerformPEMTest();
-            }
-
-            if (ArgFlagIsPresent(args, "--encrypt|-e"))
-            {
-                EncryptMessage();
-            }
-
-            if (ArgFlagIsPresent(args, "--decrypt|-d"))
-            {
-                DecryptMessage();
+                Environment.ExitCode = 2;
             }
         }
 
@@ -155,8 +195,22 @@ Options:
                 throw new Exception("Parameter --message is required!");
             }
 
+            RSACryptoServiceProvider rsa = null;
+
+            if (!string.IsNullOrEmpty(_publicKeyPath) && _publicKeyPath.EndsWith(".pem", StringComparison.OrdinalIgnoreCase))
+            {
+                rsa = ImportFromPEM(Path.GetFullPath(_publicKeyPath));
+            }
+            else if (!string.IsNullOrEmpty(_publicKeyPath) && _publicKeyPath.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
+            {
+                rsa = ImportFromXml(Path.GetFullPath(_publicKeyPath));
+            }
+            else
+            {
+                rsa = ImportFromPEM();
+            }
+
             var messageBytes = Encoding.UTF8.GetBytes(_message);
-            var rsa = ImportFromPEM();
             var encryptedMessage = rsa.Encrypt(messageBytes, false);
             var encryptedMessageBase64 = Convert.ToBase64String(encryptedMessage);
 
@@ -174,8 +228,22 @@ Options:
                 throw new Exception("Parameter --message is required!");
             }
 
+            RSACryptoServiceProvider rsa = null;
+
+            if (!string.IsNullOrEmpty(_privateKeyPath) && _privateKeyPath.EndsWith(".pem", StringComparison.OrdinalIgnoreCase))
+            {
+                rsa = ImportFromPEM(Path.GetFullPath(_privateKeyPath));
+            }
+            else if (!string.IsNullOrEmpty(_privateKeyPath) && _privateKeyPath.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
+            {
+                rsa = ImportFromXml(Path.GetFullPath(_privateKeyPath));
+            }
+            else
+            {
+                rsa = ImportFromPEM();
+            }
+
             var messageBytes = Convert.FromBase64String(_message);
-            var rsa = ImportFromPEM();
             var decryptedMessage = rsa.Decrypt(messageBytes, false);
             var decryptedMessageString = Encoding.UTF8.GetString(decryptedMessage);
 
@@ -189,6 +257,24 @@ Options:
         private void ReadMessage(IList<string> args)
         {
             _message = GetArgKeyValue(args, "message");
+        }
+
+        /// <summary>
+        /// Lê o caminho para arquivo de chave pública
+        /// </summary>
+        /// <param name="args">Lista de argumentos</param>
+        private void ReadPublicKey(IList<string> args)
+        {
+            _publicKeyPath = GetArgKeyValue(args, "pubkey");
+        }
+
+        /// <summary>
+        /// Lê o caminho para arquivo de chave privada
+        /// </summary>
+        /// <param name="args">Lista de argumentos</param>
+        private void ReadPrivateKey(IList<string> args)
+        {
+            _privateKeyPath = GetArgKeyValue(args, "privkey");
         }
 
         /// <summary>
@@ -218,12 +304,17 @@ Options:
         /// <summary>
         /// Importa chave de arquivos XML
         /// </summary>
+        /// <param name="filePath">Caminho do arquivo</param>
         /// <returns>Instância de <see cref="RSACryptoServiceProvider"/></returns>
-        RSACryptoServiceProvider ImportFromXml()
+        RSACryptoServiceProvider ImportFromXml(string filePath = null)
         {
+            if (string.IsNullOrEmpty(filePath))
+            {
+                filePath = Path.Combine(_pathBase, "key-private.xml");
+            }
+
             var rsa = new RSACryptoServiceProvider();
-            var pathPrivate = Path.Combine(_pathBase, "key-private.xml");
-            var privateXml = File.ReadAllText(pathPrivate);
+            var privateXml = File.ReadAllText(filePath);
 
             rsa.FromXmlString(privateXml);
 
@@ -256,13 +347,18 @@ Options:
         /// <summary>
         /// Importa chave de arquivos PEM
         /// </summary>
+        /// <param name="filePath">Caminho do arquivo</param>
         /// <returns>Instância de <see cref="RSACryptoServiceProvider"/></returns>
-        RSACryptoServiceProvider ImportFromPEM()
+        RSACryptoServiceProvider ImportFromPEM(string filePath = null)
         {
-            var rsa = new RSACryptoServiceProvider();
-            var pathPrivate = Path.Combine(_pathBase, "key-private.pem");
+            if (string.IsNullOrEmpty(filePath))
+            {
+                filePath = Path.Combine(_pathBase, "key-private.pem");
+            }
 
-            using (var stream = File.OpenRead(pathPrivate))
+            var rsa = new RSACryptoServiceProvider();
+
+            using (var stream = File.OpenRead(filePath))
             using (var reader = new PemReader(stream))
             {
                 var rsaParameters = reader.ReadRsaKey();
