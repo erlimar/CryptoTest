@@ -51,7 +51,7 @@ $ ls $HOME/MinhasChaves
 
 ## EXECUTAR TESTES NOS ARQUIVOS XML/PEM GERADOS
 ```console
-$ CryptoTests.exe --test-xml && CryptoTests.exe --test-pem
+$ CryptoTests.exe --test-xml
 ---------------------- PERFORM XML TEST (BEGIN) ----------------------
 Original message: Test Message!
 Encrypted message: PaK9j85yJXhJBdzr1mcjH/fH1BmAUXoi6AEdZhQ53vVqrNwc/S6
@@ -62,6 +62,8 @@ kybFWaFNy7ONDiooJ+8O/g/h7nNUK9xjjBMEdBsyodSyIiWsuBaxTtzYalbpZbiBSYiFga
 wXtdxXzlcMw==
 Decrypted message: Test Message!
 ---------------------- PERFORM XML TEST (END) ------------------------
+
+$ CryptoTests.exe --test-pem
 ---------------------- PERFORM PEM TEST (BEGIN) ----------------------
 Original message: Test Message!
 Encrypted message: BSmrw1+UFNJkcgkJeMtPJ1JLra79fMDwxlINzeTSjQ2HEEoDAk0
@@ -76,8 +78,7 @@ Decrypted message: Test Message!
 
 ## EXECUTAR TESTES NOS ARQUIVOS XML/PEM GERADOS EM UM DIRETÓRIO ESPECÍFICO
 ```console
-$ CryptoTests.exe --test-xml --base $HOME/MinhasChaves && \
-  CryptoTests.exe --test-pem --base $HOME/MinhasChaves
+$ CryptoTests.exe --test-xml --base $HOME/MinhasChaves
 ---------------------- PERFORM XML TEST (BEGIN) ----------------------
 Original message: Test Message!
 Encrypted message: PaK9j85yJXhJBdzr1mcjH/fH1BmAUXoi6AEdZhQ53vVqrNwc/S6
@@ -88,6 +89,8 @@ kybFWaFNy7ONDiooJ+8O/g/h7nNUK9xjjBMEdBsyodSyIiWsuBaxTtzYalbpZbiBSYiFga
 wXtdxXzlcMw==
 Decrypted message: Test Message!
 ---------------------- PERFORM XML TEST (END) ------------------------
+
+$ CryptoTests.exe --test-pem --base $HOME/MinhasChaves
 ---------------------- PERFORM PEM TEST (BEGIN) ----------------------
 Original message: Test Message!
 Encrypted message: BSmrw1+UFNJkcgkJeMtPJ1JLra79fMDwxlINzeTSjQ2HEEoDAk0
@@ -119,8 +122,8 @@ Decrypted message: Minha mensagem
 
 ## CIFRANDO UMA MENSAGEM COM CHAVE PÚBLICA ESPECÍFICA
 ```console
-$ CryptoTests.exe --encrypt --message 'Minha mensagem' --pubkey ./public.xml
-$ CryptoTests.exe --encrypt --message 'Minha mensagem' --pubkey ./public.pem
+$ CryptoTests.exe --encrypt --message 'Mensagem' --pubkey ./public.xml
+$ CryptoTests.exe --encrypt --message 'Mensagem' --pubkey ./public.pem
 Encrypted message: Xnbp8JNhQVY92/yYIr21Rry+vJVQvMPQROAxOQ6mQoFoT/4qiy/
 XDn0icE7BoTtdzXVEzb+Tzmsp9XcUzprWTg4+cTHOW7oBA3OFKdhBvDlP+iCgdOisIVnbO
 57QO6XDt1OfY0OlMEQzW5kp8N50Y/Z0i3pXXmdCC91lsRhZmhiyc5lRn85/K07yw0JpOB7
@@ -131,7 +134,7 @@ KQXoBl+qOsA==
 
 ## DECIFRANDO UMA MENSAGEM COM CHAVE PRIVADA ESPECÍFICA
 ```console
-$ CryptoTests.exe --decrypt --message 'cbZg3/1x5...p40/DJMiBzw==' --privkey ./private.xml
-$ CryptoTests.exe --decrypt --message 'cbZg3/1x5...p40/DJMiBzw==' --privkey ./private.pem
+$ CryptoTests.exe --d --message 'cbZg...p4w==' --privkey ./private.xml
+$ CryptoTests.exe --d --message 'cbZg...p4w==' --privkey ./private.pem
 Decrypted message: Minha mensagem
 ```
