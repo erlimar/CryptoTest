@@ -134,7 +134,7 @@ KQXoBl+qOsA==
 
 ## DECIFRANDO UMA MENSAGEM COM CHAVE PRIVADA ESPECÍFICA
 ```console
-$ CryptoTests.exe --d --message 'cbZg...p4w==' --privkey ./private.xml
-$ CryptoTests.exe --d --message 'cbZg...p4w==' --privkey ./private.pem
+$ CryptoTests.exe -d --message 'cbZg...p4w==' --privkey ./private.xml
+$ CryptoTests.exe -d --message 'cbZg...p4w==' --privkey ./private.pem
 Decrypted message: Minha mensagem
 ```
